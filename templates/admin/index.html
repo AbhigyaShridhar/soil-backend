@@ -1,0 +1,40 @@
+{% extends 'admin/base_site.html' %}
+
+{% block content %}
+    <div id="content-main">
+      <br>
+      <h1>Welcome to CROPS+</h1>
+      <h3 id="location"></h3>
+      <p id="subtype"></p>
+      <br>
+      <h2>Based on your soil type and location, these crops would give good crop yield:</h2>
+      <h1 id="recommendation"></h1>
+      <br>
+      <p>Get more <a id="details" href="#">details</a></p>
+    </div>
+{% endblock %}
+
+{% block extrahead %}
+    {{ block.super }}
+    <script>
+        function showPosition(position) {
+            fetch("{% url 'geo_admin_site:get_user_location_mapping' %}")
+                .then(response => response.json())
+                .then(data => {
+                    const location = document.getElementById("location");
+                    location.innerText = `Your dominant soil type is ${data.soil_type}`;
+
+                    const subtype = document.getElementById("subtype");
+                    subtype.innerText = `Your exact soil type out of 109 scietific classifications is ${data.subtype}`;
+
+                    const recommendation = document.getElementById("recommendation");
+                    recommendation.innerText = `${data.recommendations}`;
+
+                    const details = document.getElementById("details");
+                    details.href = `/geo/soiltype/${data.id}/change/`;
+                });
+        }
+
+        showPosition();
+    </script>
+{% endblock %}

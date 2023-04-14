@@ -1,2 +1,9 @@
 django
-geodjango
+psycopg2
+gunicorn
+uvicorn
+django-jet-reboot
+#geoip2
+pandas
+geocoder
+openpyxl
