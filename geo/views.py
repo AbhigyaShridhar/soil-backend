@@ -1,9 +1,21 @@
 #from django.contrib.gis.geoip2 import GeoIP2
 from django.http import JsonResponse
 from .models import soilType
-from django.contrib.gis.geos import Point
 import pandas as pd
 import geocoder
+from django.contrib.gis.db.models.functions import Transform
+from django.contrib.gis.geos import Point
+from django.contrib.gis.measure import D
+from django.contrib.gis.db.models.functions import Distance
+from django.contrib.gis.db.models.functions import Area
+from django.contrib.gis.db.models.functions import Intersection
+from django.shortcuts import render
+from django.urls import reverse
+from django.utils.html import format_html
+from django.views.decorators.csrf import csrf_exempt
+from django.http import JsonResponse
+from django.contrib.admin.views.decorators import staff_member_required
+from django.contrib.auth.decorators import login_required
 
 def getData():
     xls = pd.ExcelFile('Crop_Recommendation_Dataset.xlsx')
@@ -16,6 +28,38 @@ def getData():
         recommendations = subset.iloc[0]['Recommendations']
         res[code] = {'Soil Type': soil_type, 'Subtype': subtype, 'Recommendations': recommendations}
     return res
+
+
+@csrf_exempt
+@staff_member_required(login_url='/admin/login/')
+@login_required
+def get_soil_detail(request):
+    # Get the latitude and longitude of the clicked point
+    lat = request.POST.get('lat')
+    lng = request.POST.get('lng')
+    point = Point(float(lng), float(lat), srid=4326)
+
+    # Find the nearest soilDetail object to the clicked point
+    soil_detail = soilType.objects.filter(geom__distance_lte=(point, D(m=5000))) \
+        .annotate(distance=Distance('geom', point)) \
+        .order_by('distance') \
+        .first()
+
+    # Render a JSON response with the soilDetail data
+
+    dataSet = getData()
+    res = dataSet[soil_detail.domsoi]
+    soil_t = res['Soil Type']
+    subtype = res['Subtype']
+    recommendations = res['Recommendations']
+    description = {'Soil Type': soil_t, 'Subtype': subtype, 'Recommendations': recommendations}
+
+    return JsonResponse({
+        'id': soil_detail.id,
+        'name': soil_detail.domsoi,
+        'description': description,
+        'geom': soil_detail.geom.json,
+    })
 
 
 def get_user_location_mapping(request):

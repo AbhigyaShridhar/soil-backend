@@ -25,13 +25,13 @@
                     location.innerText = `Your dominant soil type is ${data.soil_type}`;
 
                     const subtype = document.getElementById("subtype");
-                    subtype.innerText = `Your exact soil type out of 109 scietific classifications is ${data.subtype}`;
+                    subtype.innerText = `Your exact soil type out of 106 scietific classifications is ${data.subtype}`;
 
                     const recommendation = document.getElementById("recommendation");
                     recommendation.innerText = `${data.recommendations}`;
 
                     const details = document.getElementById("details");
-                    details.href = `/geo/soiltype/${data.id}/change/`;
+                    details.href = `geo/soiltype/${data.id}/change/`;
                 });
         }
 

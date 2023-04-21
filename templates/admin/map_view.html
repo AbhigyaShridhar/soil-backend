@@ -1,0 +1,74 @@
+{% extends "admin/base_site.html" %}
+
+{% block content %}
+<div id="content-main">
+  <h2>Click <a href="data/">here</a> to view your region<h2>
+  <div id="map" style="height: 100vh; width: 100%; padding: 5%;"></div>
+</div>
+{% endblock %}
+
+{% block extrahead %}
+{{ block.super }}
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
+<script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script type="text/javascript">
+  $(document).ready(function() {
+    // Initialize the map
+    var map = L.map('map').setView({{ pos }}, 5);
+
+    // Add the tile layer
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: 'Map data &copy; <a href="https://www.openstreetmap.org/">OpenStreetMap</a> contributors',
+        maxZoom: 18,
+    }).addTo(map);
+
+    // Add the soil detail data as markers on the map
+    var soilDetailData = {{ soil_detail_data|safe }};
+    //console.log(soilDetailData);
+    for (var i = 0; i < soilDetailData.length; i++) {
+        //console.log(soilDetailData[i].geom);
+        var soilDetail = JSON.parse(soilDetailData[i].geom);
+        // console.log(soilDetail);
+        var coordinates = soilDetail.coordinates[0][0];
+        // console.log(coordinates);
+        var geojsonFeature = {
+          "type": "Feature",
+          "properties": {
+            "name": soilDetailData[i].name,
+          },
+          "geometry": soilDetail,
+        };
+        var marker = L.geoJSON(geojsonFeature).addTo(map);
+
+        // Add popup to marker when clicked
+        marker.on('click', function(e) {
+            var lat = e.latlng.lat;
+            var lng = e.latlng.lng;
+            $.ajax({
+                url: '{% url "map_admin_site:get_soil_detail" %}',
+                method: 'POST',
+                data: {
+                    'lat': lat,
+                    'lng': lng,
+                    'csrfmiddlewaretoken': '{{ csrf_token }}'
+                },
+                success: function(data) {
+                    // Create the popup content
+                    var content = '<b>Name:</b> ' + data.name + '<br><b>Soil Type:</b> ' + data.description['Soil Type'] + '<br><b>Subtype:</b> ' + data.description['Subtype'] + '<br><b>Recommendations:</b> ' + data.description['Recommendations'];
+
+                    // Create the popup and add it to the marker
+                    var popup = L.popup()
+                        .setLatLng(e.latlng)
+                        .setContent(content)
+                        .openOn(map);
+                },
+                error: function(xhr, status, error) {
+                    console.error('Error:', error);
+                }
+            });
+        });
+    }
+});
+</script>
+{% endblock %}
